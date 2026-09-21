@@ -1,8 +1,16 @@
-var sf = new Snowflakes({
-    color: "#2dd4bf",
-    minSize: 15,
-    maxSize: 32
-});
+var sf = null;
+if (typeof Snowflakes !== 'undefined') {
+    try {
+        sf = new Snowflakes({
+            color: "#2dd4bf",
+            minSize: 12,
+            maxSize: window.innerWidth < 768 ? 22 : 30,
+            count: window.innerWidth < 768 ? 25 : 45
+        });
+    } catch (e) {
+        console.log('Snowflakes init error:', e);
+    }
+}
 var url_string = window.location.href;
 try {
     var url = new URL(url_string);
@@ -44,13 +52,19 @@ $(document).ready(function () {
 
 $(".main").fadeOut(1);
 $('#play').click(function () {
-    $(".loader").fadeOut(1200);
-    $(".main").fadeIn("slow");
+    $(".loader").fadeOut(1000);
+    $(".main").fadeIn("slow", function () {
+        if (window.confettiInstance && window.confettiInstance.resize) {
+            window.confettiInstance.resize();
+        }
+    });
     if (typeof sf !== 'undefined' && sf) {
-        sf.destroy();
+        try {
+            sf.destroy();
+        } catch (e) {}
     }
     $('.balloon-border').animate({
-        top: -500
+        top: -600
     }, 8000);
     playMusic();
 });
@@ -402,9 +416,9 @@ document.addEventListener("DOMContentLoaded", function () {
     confetti.Context = function (id) {
         var i = 0;
         var canvas = document.getElementById(id);
-        var canvasParent = canvas.parentNode;
-        var canvasWidth = canvasParent.offsetWidth;
-        var canvasHeight = canvasParent.offsetHeight;
+        if (!canvas) return;
+        var canvasWidth = window.innerWidth || document.documentElement.clientWidth;
+        var canvasHeight = window.innerHeight || document.documentElement.clientHeight;
         canvas.width = canvasWidth * retina;
         canvas.height = canvasHeight * retina;
         var context = canvas.getContext('2d');
@@ -420,15 +434,15 @@ document.addEventListener("DOMContentLoaded", function () {
             confettiPapers[i] = new ConfettiPaper(random() * canvasWidth, random() * canvasHeight);
         }
         this.resize = function () {
-            canvasWidth = canvasParent.offsetWidth;
-            canvasHeight = canvasParent.offsetHeight;
+            canvasWidth = window.innerWidth || document.documentElement.clientWidth;
+            canvasHeight = window.innerHeight || document.documentElement.clientHeight;
             canvas.width = canvasWidth * retina;
             canvas.height = canvasHeight * retina;
             ConfettiPaper.bounds = new Vector2(canvasWidth, canvasHeight);
             ConfettiRibbon.bounds = new Vector2(canvasWidth, canvasHeight);
         }
         this.start = function () {
-            this.stop()
+            this.stop();
             var context = this;
             this.update();
         }
@@ -451,9 +465,14 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
     };
-    var confetti = new confetti.Context('confetti');
-    confetti.start();
+    var confettiInstance = new confetti.Context('confetti');
+    window.confettiInstance = confettiInstance;
+    if (confettiInstance && confettiInstance.start) {
+        confettiInstance.start();
+    }
     window.addEventListener('resize', function (event) {
-        confetti.resize();
+        if (window.confettiInstance && window.confettiInstance.resize) {
+            window.confettiInstance.resize();
+        }
     });
 });
